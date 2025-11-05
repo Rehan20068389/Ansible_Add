@@ -15,7 +15,7 @@ variable "aws_region" {
 variable "vpc_id" {
   description = "Use an existing VPC ID (leave empty to create a new one)"
   type        = string
-  default     = "" # Set to "vpc-xxxx" if reusing an existing VPC
+  default     = "vpc-0c224296c36df1004" 
 }
 
 ############################################
