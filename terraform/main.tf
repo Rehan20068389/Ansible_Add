@@ -29,6 +29,14 @@ data "aws_ecr_repository" "app" {
   name = var.ecr_name
 }
 
+# ✅ Fetch existing subnets from the provided VPC
+data "aws_subnets" "existing" {
+  filter {
+    name   = "vpc-id"
+    values = [var.vpc_id]
+  }
+}
+
 ############################################
 # NETWORKING - CREATE VPC IF NOT PROVIDED
 ############################################
@@ -46,19 +54,21 @@ resource "aws_internet_gateway" "gw" {
   count  = var.vpc_id == "" ? 1 : 0
   vpc_id = aws_vpc.main[0].id
 }
-resource "aws_subnet" "public" {
-  count = 2
-  vpc_id = var.vpc_id
-  cidr_block = element(["10.0.0.0/24", "10.0.1.0/24"], count.index)
-  availability_zone = element(data.aws_availability_zones.available.names, count.index)
-  map_public_ip_on_launch = true
-  tags = {
-    Name = "public-subnet-${count.index}"
-  }
-}
+
+# ❌ REMOVED subnet creation (using existing ones instead)
+# resource "aws_subnet" "public" {
+#   count = 2
+#   vpc_id = var.vpc_id
+#   cidr_block = element(["10.0.0.0/24", "10.0.1.0/24"], count.index)
+#   availability_zone = element(data.aws_availability_zones.available.names, count.index)
+#   map_public_ip_on_launch = true
+#   tags = {
+#     Name = "public-subnet-${count.index}"
+#   }
+# }
 
 ############################################
-# IAM ROLE FOR EKS (Kept in case needed later)
+# IAM ROLE FOR EKS
 ############################################
 
 # Policy document for EKS assume role
