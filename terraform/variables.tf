@@ -19,17 +19,11 @@ variable "vpc_id" {
 }
 
 ############################################
-# EKS Cluster Configuration
+# IAM Role Configuration
 ############################################
 
-variable "eks_cluster_name" {
-  description = "Base name for the EKS cluster (random suffix added automatically)"
-  type        = string
-  default     = "terraform-eks-cluster"
-}
-
 variable "eks_role_name" {
-  description = "Base IAM role name for EKS cluster (random suffix avoids conflicts)"
+  description = "Base IAM role name for Kubernetes or future EKS setup (random suffix avoids conflicts)"
   type        = string
   default     = "terraform-eks-cluster-role"
 }

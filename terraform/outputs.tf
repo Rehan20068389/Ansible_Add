@@ -1,8 +1,3 @@
-output "eks_cluster_name" {
-  description = "EKS cluster name (with random suffix)"
-  value       = aws_eks_cluster.eks.name
-}
-
 output "ecr_repository_uri" {
   description = "URI of the existing ECR repository"
   value       = data.aws_ecr_repository.app.repository_url

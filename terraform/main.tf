@@ -60,7 +60,7 @@ resource "aws_subnet" "public" {
 }
 
 ############################################
-# IAM ROLE FOR EKS
+# IAM ROLE FOR EKS (Kept in case needed later)
 ############################################
 
 # Policy document for EKS assume role
@@ -94,28 +94,4 @@ resource "aws_iam_role_policy_attachment" "cluster_policy" {
 resource "aws_iam_role_policy_attachment" "vpc_cni_policy" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
   role       = aws_iam_role.eks_cluster_role.name
-}
-
-############################################
-# EKS CLUSTER
-############################################
-
-# Add random suffix to cluster name to avoid "Cluster already exists" errors
-resource "aws_eks_cluster" "eks" {
-  name     = "${var.eks_cluster_name}-${random_id.suffix.hex}"
-  role_arn = aws_iam_role.eks_cluster_role.arn
-
-  vpc_config {
-    subnet_ids = aws_subnet.public[*].id
-  }
-
-  depends_on = [
-    aws_iam_role_policy_attachment.cluster_policy,
-    aws_iam_role_policy_attachment.vpc_cni_policy
-  ]
-
-  tags = {
-    Name = "EKS-Cluster"
-    Environment = "Development"
-  }
 }
