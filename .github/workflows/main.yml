@@ -1,4 +1,4 @@
-name: Build and Push to Amazon ECR
+name: Build, Push to ECR, and Deploy to EC2
 
 on:
   push:
@@ -59,10 +59,31 @@ jobs:
           docker push $ECR_REGISTRY/${{ env.IMAGE_REPO }}:$IMAGE_TAG
           docker push $ECR_REGISTRY/${{ env.IMAGE_REPO }}:latest
 
-      # ✅ Step 6️⃣: Output ECR image info (confirming new AWS account ID)
+      # Step 6️⃣: Output ECR image info
       - name: Verify Deployed Image and Account
         run: |
           echo "✅ ECR Image pushed successfully!"
           echo "ECR Registry: ${{ steps.login-ecr.outputs.registry }}"
           echo "Full Image URI: ${{ steps.login-ecr.outputs.registry }}/${{ env.IMAGE_REPO }}:latest"
           echo "AWS Account ID: 324169293212"
+
+      # Step 7️⃣: Deploy Docker container to EC2
+      - name: Deploy Docker container to EC2
+        uses: appleboy/ssh-action@v0.1.9
+        with:
+          host: ${{ secrets.EC2_HOST }}             # EC2 public IP (e.g., 16.171.53.128)
+          username: ec2-user
+          key: ${{ secrets.EC2_PRIVATE_KEY }}       # Your private key as GitHub secret
+          script: |
+            # Log in to ECR
+            aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ steps.login-ecr.outputs.registry }}
+
+            # Pull the latest Docker image
+            docker pull ${{ steps.login-ecr.outputs.registry }}/${{ env.IMAGE_REPO }}:latest
+
+            # Stop any running container of the same app
+            docker stop my-app || true
+            docker rm my-app || true
+
+            # Run the new container
+            docker run -d --name my-app -p 80:80 ${{ steps.login-ecr.outputs.registry }}/${{ env.IMAGE_REPO }}:latest
