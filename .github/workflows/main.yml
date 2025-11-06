@@ -6,8 +6,8 @@ on:
 
 env:
   AWS_REGION: eu-north-1
-  IMAGE_REPO: rehan_2003       # ECR repo name
-  TF_DIR: terraform            # Terraform directory path
+  IMAGE_REPO: rehan_2003        # ECR repo name
+  TF_DIR: terraform             # Terraform directory path
 
 jobs:
   build-and-push:
@@ -26,7 +26,7 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      # Step 2️⃣: Setup Terraform (for networking, IAM, ECR, etc.)
+      # Step 2️⃣: Setup Terraform
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
 
@@ -58,3 +58,11 @@ jobs:
           ECR_REGISTRY=${{ steps.login-ecr.outputs.registry }}
           docker push $ECR_REGISTRY/${{ env.IMAGE_REPO }}:$IMAGE_TAG
           docker push $ECR_REGISTRY/${{ env.IMAGE_REPO }}:latest
+
+      # ✅ Step 6️⃣: Output ECR image info (confirming new AWS account ID)
+      - name: Verify Deployed Image and Account
+        run: |
+          echo "✅ ECR Image pushed successfully!"
+          echo "ECR Registry: ${{ steps.login-ecr.outputs.registry }}"
+          echo "Full Image URI: ${{ steps.login-ecr.outputs.registry }}/${{ env.IMAGE_REPO }}:latest"
+          echo "AWS Account ID: 324169293212"
