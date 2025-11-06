@@ -84,8 +84,8 @@ jobs:
             docker pull ${{ steps.login-ecr.outputs.registry }}/${{ env.IMAGE_REPO }}:latest
 
             # Stop any running container of the same app
-            docker stop my-app || true
-            docker rm my-app || true
+            docker stop Rehan_container || true
+            docker rm Rehan_container || true
 
             # Run the new container
-            docker run -d --name my-app -p 80:80 ${{ steps.login-ecr.outputs.registry }}/${{ env.IMAGE_REPO }}:latest
+            docker run -d --name Rehan_container -p 80:80 ${{ steps.login-ecr.outputs.registry }}/${{ env.IMAGE_REPO }}:latest
