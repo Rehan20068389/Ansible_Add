@@ -1,4 +1,4 @@
-name: Build and Push to Amazon ECR
+name: Build, Push to Amazon ECR, and Deploy to EC2
 
 on:
   push:
@@ -8,17 +8,19 @@ env:
   AWS_REGION: eu-north-1
   IMAGE_REPO: rehan_2003        # ECR repo name
   TF_DIR: terraform             # Terraform directory path
+  CONTAINER_NAME: Rehan_container
+  APP_PORT: 3001                # Node.js app port
 
 jobs:
-  build-and-push:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 0️⃣: Checkout code
+      # 0️⃣ Checkout code
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Step 1️⃣: Configure AWS credentials
+      # 1️⃣ Configure AWS credentials
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
@@ -26,24 +28,26 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      # Step 2️⃣: Setup Terraform
+      # 2️⃣ Setup Terraform
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
 
+      # 2a Terraform Init
       - name: Terraform Init
         working-directory: ${{ env.TF_DIR }}
         run: terraform init
 
+      # 2b Terraform Apply
       - name: Terraform Apply
         working-directory: ${{ env.TF_DIR }}
         run: terraform apply -auto-approve
 
-      # Step 3️⃣: Log in to Amazon ECR
+      # 3️⃣ Log in to Amazon ECR
       - name: Log in to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      # Step 4️⃣: Build Docker image
+      # 4️⃣ Build Docker image
       - name: Build Docker image
         run: |
           IMAGE_TAG=${{ github.sha }}
@@ -51,7 +55,7 @@ jobs:
           docker build -t $ECR_REGISTRY/${{ env.IMAGE_REPO }}:$IMAGE_TAG .
           docker tag $ECR_REGISTRY/${{ env.IMAGE_REPO }}:$IMAGE_TAG $ECR_REGISTRY/${{ env.IMAGE_REPO }}:latest
 
-      # Step 5️⃣: Push Docker image to ECR
+      # 5️⃣ Push Docker image to ECR
       - name: Push Docker image to ECR
         run: |
           IMAGE_TAG=${{ github.sha }}
@@ -59,10 +63,46 @@ jobs:
           docker push $ECR_REGISTRY/${{ env.IMAGE_REPO }}:$IMAGE_TAG
           docker push $ECR_REGISTRY/${{ env.IMAGE_REPO }}:latest
 
-      # ✅ Step 6️⃣: Output ECR image info (confirming new AWS account ID)
+      # 6️⃣ Output ECR image info
       - name: Verify Deployed Image and Account
         run: |
           echo "✅ ECR Image pushed successfully!"
           echo "ECR Registry: ${{ steps.login-ecr.outputs.registry }}"
           echo "Full Image URI: ${{ steps.login-ecr.outputs.registry }}/${{ env.IMAGE_REPO }}:latest"
           echo "AWS Account ID: 324169293212"
+
+      # 7️⃣ Deploy Docker container to EC2
+      - name: Deploy Docker container to EC2
+        uses: appleboy/ssh-action@v0.1.9
+        with:
+          host: ${{ secrets.EC2_HOST }}              # EC2 public IP
+          username: ec2-user
+          key: ${{ secrets.EC2_PRIVATE_KEY }}        # .pem private key
+          port: 22
+          script: |
+            # Install Docker if missing
+            if ! command -v docker &> /dev/null; then
+              sudo dnf update -y
+              sudo dnf install docker -y
+              sudo systemctl start docker
+              sudo systemctl enable docker
+            fi
+
+            # Export AWS credentials on EC2
+            export AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
+            export AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            export AWS_DEFAULT_REGION=${{ env.AWS_REGION }}
+
+            # Login to ECR
+            aws ecr get-login-password --region $AWS_DEFAULT_REGION | \
+              sudo docker login --username AWS --password-stdin ${{ steps.login-ecr.outputs.registry }}
+
+            # Pull the latest Docker image
+            sudo docker pull ${{ steps.login-ecr.outputs.registry }}/${{ env.IMAGE_REPO }}:latest
+
+            # Stop and remove existing container
+            sudo docker stop ${{ env.CONTAINER_NAME }} || true
+            sudo docker rm ${{ env.CONTAINER_NAME }} || true
+
+            # Run the new container (map 80:3001)
+            sudo docker run -d --name ${{ env.CONTAINER_NAME }} -p 80:${{ env.APP_PORT }} ${{ steps.login-ecr.outputs.registry }}/${{ env.IMAGE_REPO }}:latest
