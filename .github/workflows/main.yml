@@ -5,7 +5,7 @@ on:
     branches: [ main ]
 
 env:
-  TF_DIR: terraform                     # Terraform directory
+  TF_DIR: terraform                     # Terraform directo
   AWS_REGION: eu-north-1                # AWS region
   ECR_REPO_NAME: my-simple-app          # ECR repo name
   DOCKER_IMAGE_TAG: latest              # Docker tag
