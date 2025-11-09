@@ -15,7 +15,7 @@ app.get('/', (req, res) => {
       background: linear-gradient(to bottom right, #eef2f3, #8e9eab);
     ">
       <h1 style="font-size: 2.5rem; color: #222;"> It's Working — All Set!</h1>
-      <p style="font-size: 1.2rem; color: #444;"> Deployment success.</p>
+      <p style="font-size: 1.2rem; color: #444;"> Deployment Wprking....</p>
       <img 
         src="https://blog.hyperiondev.com/wp-content/uploads/2020/09/coders-who-changed-the-world.png" 
         alt="Deployed Image" 
